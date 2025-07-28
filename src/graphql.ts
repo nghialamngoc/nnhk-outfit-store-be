@@ -14,6 +14,12 @@ export class CreateCategoryInput {
     description?: Nullable<string>;
 }
 
+export class UpdateCategoryInput {
+    name?: Nullable<string>;
+    slug?: Nullable<string>;
+    description?: Nullable<string>;
+}
+
 export class CreateProductInput {
     name: string;
     slug: string;
@@ -56,10 +62,18 @@ export class Category {
     updatedAt: Date;
 }
 
+export abstract class IQuery {
+    abstract categories(): Category[] | Promise<Category[]>;
+
+    abstract product(id: string): Nullable<Product> | Promise<Nullable<Product>>;
+}
+
 export abstract class IMutation {
     abstract createCategory(input: CreateCategoryInput): Category | Promise<Category>;
 
-    abstract seedCategories(): boolean | Promise<boolean>;
+    abstract updateCategory(id: string, input: UpdateCategoryInput): Category | Promise<Category>;
+
+    abstract deleteCategory(id: string): boolean | Promise<boolean>;
 
     abstract createProduct(input: CreateProductInput): Product | Promise<Product>;
 }
@@ -98,10 +112,6 @@ export class Stock {
 export class Image {
     url: string;
     alt?: Nullable<string>;
-}
-
-export abstract class IQuery {
-    abstract product(id: string): Nullable<Product> | Promise<Nullable<Product>>;
 }
 
 type Nullable<T> = T | null;
