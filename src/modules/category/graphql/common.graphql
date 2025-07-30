@@ -1,7 +1,7 @@
 scalar Date
 
 type Category {
-  id: ID!
+  id: String!
   name: String!
   slug: String!
   description: String

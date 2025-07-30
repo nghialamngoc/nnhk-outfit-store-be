@@ -1,0 +1,4 @@
+type Query {
+  category(id: ID!): Category
+  categories: [Category]
+}

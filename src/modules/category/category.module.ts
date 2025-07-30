@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CategoryService } from './category.service';
 import { Category, CategorySchema } from './schema/category.schema';
@@ -10,7 +10,13 @@ import { CategoryResolver } from './category.resolver';
       { name: Category.name, schema: CategorySchema },
     ]),
   ],
+  controllers: [],
   providers: [CategoryService, CategoryResolver],
-  exports: [CategoryService],
+  exports: [
+    CategoryService,
+    MongooseModule.forFeature([
+      { name: Category.name, schema: CategorySchema },
+    ]),
+  ],
 })
 export class CategoryModule {}

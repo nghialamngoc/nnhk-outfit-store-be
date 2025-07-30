@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ProductModule } from './modules/product/product.module';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
@@ -34,7 +33,6 @@ import { CategoryModule } from './modules/category/category.module';
       introspection: true,
       context: ({ req, res }) => ({ req, res }),
     }),
-    ProductModule,
     CategoryModule,
   ],
   controllers: [],
