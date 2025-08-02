@@ -5,6 +5,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { CategoryModule } from './modules/category/category.module';
+import { ProductModule } from './modules/product/product.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { CategoryModule } from './modules/category/category.module';
       context: ({ req, res }) => ({ req, res }),
     }),
     CategoryModule,
+    ProductModule,
   ],
   controllers: [],
   providers: [],

@@ -1,0 +1,58 @@
+scalar Date
+
+type Product {
+  id: ID!
+  name: String!
+  slug: String!
+  sku: String
+  description: String
+  category: Category!
+  price: Float!
+  discountPrice: Float
+  stock: [Stock!]!
+  material: String
+  gender: String
+  images: [Image!]
+  tags: [String!]
+  status: String
+  createdAt: Date!
+  updatedAt: Date!
+}
+
+type Stock {
+  size: String!
+  color: String!
+  quantity: Int!
+}
+
+type Image {
+  url: String!
+  alt: String
+}
+
+input CreateProductInput {
+  name: String!
+  slug: String!
+  description: String
+  sku: String
+  categoryId: ID!
+  price: Float!
+  discountPrice: Float
+  stock: [StockInput!]!
+  material: String
+  gender: String
+  images: [ImageInput!]
+  tags: [String!]
+  status: String
+}
+
+input StockInput {
+  size: String!
+  color: String!
+  quantity: Int!
+}
+
+input ImageInput {
+  url: String!
+  alt: String
+}

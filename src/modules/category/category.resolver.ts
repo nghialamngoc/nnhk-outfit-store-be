@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Args, Query, ID, Int } from '@nestjs/graphql';
-import { UseGuards, UsePipes, ValidationPipe, Logger } from '@nestjs/common';
+import { UsePipes, ValidationPipe, Logger } from '@nestjs/common';
 import { Category } from 'src/graphql';
 import { CategoryService } from './category.service';
 import {
