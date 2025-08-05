@@ -1,7 +1,12 @@
 import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
-import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { Args, Query, Mutation, Resolver } from '@nestjs/graphql';
 import { ProductService } from './product.service';
-import { CreateProductInputDTO } from './dto/product.dto';
+import {
+  CreateProductInputDTO,
+  GetProductsInputDTO,
+  UpdateProductInputDTO,
+} from './dto/product.dto';
+import { ProductConnection } from 'src/graphql';
 
 @Resolver('Product')
 @UsePipes(new ValidationPipe({ transform: true }))
@@ -10,17 +15,20 @@ export class ProductResolver {
 
   constructor(private readonly productService: ProductService) {}
 
-  @Mutation('createProduct')
-  async createProduct(@Args('input') input: CreateProductInputDTO) {
-    this.logger.log('Creating product with input:', input);
+  @Query(() => ProductConnection)
+  async getProducts(@Args('input') input: GetProductsInputDTO) {
+    return this.productService.getProducts(input);
+  }
 
-    try {
-      const result = await this.productService.create(input);
-      this.logger.log('Product created successfully:', result.id);
-      return result;
-    } catch (error) {
-      this.logger.error('Error creating product:', error.message);
-      throw error;
-    }
+  @Mutation()
+  async createProduct(@Args('input') input: CreateProductInputDTO) {
+    // Logic để tạo sản phẩm
+    return this.productService.create(input);
+  }
+
+  @Mutation()
+  async updateProduct(@Args('input') input: UpdateProductInputDTO) {
+    // Logic để cập nhật sản phẩm
+    return this.productService.update(input);
   }
 }

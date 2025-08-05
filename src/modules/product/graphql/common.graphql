@@ -4,55 +4,86 @@ type Product {
   id: ID!
   name: String!
   slug: String!
-  sku: String
   description: String
-  category: Category!
-  price: Float!
-  discountPrice: Float
-  stock: [Stock!]!
-  material: String
-  gender: String
-  images: [Image!]
+  basePrice: Float!
+  variants: [ProductVariant!]
   tags: [String!]
   status: String
   createdAt: Date!
   updatedAt: Date!
 }
 
-type Stock {
-  size: String!
-  color: String!
-  quantity: Int!
+type ProductVariant {
+  id: ID!
+  sku: String!
+  price: Float!
+  discountPrice: Float
+  stockQuantity: Int!
+  options: [ProductOption!]
+  images: [String!]
+  status: String
+  createdAt: Date!
+  updatedAt: Date!
 }
 
-type Image {
-  url: String!
-  alt: String
+type ProductOption {
+  name: String!
+  value: String!
+}
+
+input ProductOptionInput {
+  name: String!
+  value: String!
+}
+
+input ProductVariantInput {
+  sku: String!
+  price: Float!
+  discountPrice: Float
+  stockQuantity: Int!
+  images: [String!]
+  status: String
+  options: [ProductOptionInput!]
 }
 
 input CreateProductInput {
   name: String!
   slug: String!
   description: String
-  sku: String
-  categoryId: ID!
-  price: Float!
-  discountPrice: Float
-  stock: [StockInput!]!
-  material: String
-  gender: String
-  images: [ImageInput!]
+  basePrice: Float!
+  variants: [ProductVariantInput!]
   tags: [String!]
   status: String
 }
 
-input StockInput {
-  size: String!
-  color: String!
-  quantity: Int!
+input UpdateProductInput {
+  id: ID!
+  name: String
+  slug: String
+  description: String
+  basePrice: Float
+  variants: [ProductVariantInput!]
+  tags: [String!]
+  status: String
 }
 
-input ImageInput {
-  url: String!
-  alt: String
+type ProductConnection {
+  products: [Product!]!
+  totalCount: Int!
+  pageInfo: PageInfo!
+}
+
+type PageInfo {
+  currentPage: Int!
+  totalPages: Int!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+input GetProductsInput {
+  page: Int!
+  limit: Int!
+  sortBy: String
+  sortOrder: String
+  ids: [ID!]
 }
