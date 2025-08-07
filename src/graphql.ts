@@ -30,7 +30,7 @@ export class ProductVariantInput {
     price: number;
     discountPrice?: Nullable<number>;
     stockQuantity: number;
-    images?: Nullable<string[]>;
+    image?: Nullable<string>;
     status?: Nullable<string>;
     options?: Nullable<ProductOptionInput[]>;
 }
@@ -40,6 +40,7 @@ export class CreateProductInput {
     slug: string;
     description?: Nullable<string>;
     basePrice: number;
+    images?: Nullable<string[]>;
     variants?: Nullable<ProductVariantInput[]>;
     tags?: Nullable<string[]>;
     status?: Nullable<string>;
@@ -51,6 +52,7 @@ export class UpdateProductInput {
     slug?: Nullable<string>;
     description?: Nullable<string>;
     basePrice?: Nullable<number>;
+    images?: Nullable<string[]>;
     variants?: Nullable<ProductVariantInput[]>;
     tags?: Nullable<string[]>;
     status?: Nullable<string>;
@@ -99,11 +101,12 @@ export class Product {
     slug: string;
     description?: Nullable<string>;
     basePrice: number;
+    images?: Nullable<string[]>;
     variants?: Nullable<ProductVariant[]>;
     tags?: Nullable<string[]>;
     status?: Nullable<string>;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt?: Nullable<Date>;
+    updatedAt?: Nullable<Date>;
 }
 
 export class ProductVariant {
@@ -113,10 +116,10 @@ export class ProductVariant {
     discountPrice?: Nullable<number>;
     stockQuantity: number;
     options?: Nullable<ProductOption[]>;
-    images?: Nullable<string[]>;
+    image?: Nullable<string>;
     status?: Nullable<string>;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt?: Nullable<Date>;
+    updatedAt?: Nullable<Date>;
 }
 
 export class ProductOption {

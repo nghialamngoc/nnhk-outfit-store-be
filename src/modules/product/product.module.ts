@@ -4,11 +4,13 @@ import { Product, ProductSchema } from '../schemas/product.schema';
 import { ProductService } from './product.service';
 import { ProductResolver } from './product.resolver';
 import { CategoryModule } from '../category/category.module';
+import { R2Module } from '../r2/r2.module';
 
 @Module({
   imports: [
     CategoryModule,
     MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
+    R2Module,
   ],
   controllers: [],
   providers: [ProductService, ProductResolver],

@@ -22,13 +22,11 @@ export class ProductResolver {
 
   @Mutation()
   async createProduct(@Args('input') input: CreateProductInputDTO) {
-    // Logic để tạo sản phẩm
     return this.productService.create(input);
   }
 
   @Mutation()
   async updateProduct(@Args('input') input: UpdateProductInputDTO) {
-    // Logic để cập nhật sản phẩm
     return this.productService.update(input);
   }
 }

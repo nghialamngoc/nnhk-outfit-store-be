@@ -6,11 +6,12 @@ type Product {
   slug: String!
   description: String
   basePrice: Float!
+  images: [String!]
   variants: [ProductVariant!]
   tags: [String!]
   status: String
-  createdAt: Date!
-  updatedAt: Date!
+  createdAt: Date
+  updatedAt: Date
 }
 
 type ProductVariant {
@@ -20,10 +21,10 @@ type ProductVariant {
   discountPrice: Float
   stockQuantity: Int!
   options: [ProductOption!]
-  images: [String!]
+  image: String
   status: String
-  createdAt: Date!
-  updatedAt: Date!
+  createdAt: Date
+  updatedAt: Date
 }
 
 type ProductOption {
@@ -41,7 +42,7 @@ input ProductVariantInput {
   price: Float!
   discountPrice: Float
   stockQuantity: Int!
-  images: [String!]
+  image: String
   status: String
   options: [ProductOptionInput!]
 }
@@ -51,6 +52,7 @@ input CreateProductInput {
   slug: String!
   description: String
   basePrice: Float!
+  images: [String!]
   variants: [ProductVariantInput!]
   tags: [String!]
   status: String
@@ -62,6 +64,7 @@ input UpdateProductInput {
   slug: String
   description: String
   basePrice: Float
+  images: [String!]
   variants: [ProductVariantInput!]
   tags: [String!]
   status: String

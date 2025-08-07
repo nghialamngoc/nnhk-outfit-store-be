@@ -38,19 +38,19 @@ export class ProductVariant {
       },
     ],
   })
-  options: { name: string; value: string }[];
+  options?: { name: string; value: string }[];
 
-  @Prop([String])
-  images?: string[];
+  @Prop(String)
+  image?: string;
 
   @Prop({ enum: ProductStatus, default: ProductStatus.active })
   status?: string;
 
   @Prop({ default: Date.now })
-  createdAt: Date;
+  createdAt?: Date;
 
   @Prop({ default: Date.now })
-  updatedAt: Date;
+  updatedAt?: Date;
 }
 
 @Schema({ timestamps: true })
@@ -63,6 +63,9 @@ export class Product {
 
   @Prop()
   description?: string;
+
+  @Prop([String])
+  images?: string[];
 
   @Prop({ required: true })
   basePrice: number;

@@ -22,6 +22,10 @@ class ProductOptionInputDTO {
 }
 
 class ProductVariantInputDTO {
+  @IsString()
+  @Prop({ type: Types.ObjectId })
+  id: Types.ObjectId;
+
   @IsNotEmpty()
   @IsString()
   sku: string;
@@ -38,9 +42,8 @@ class ProductVariantInputDTO {
   stockQuantity: number;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  images?: string[];
+  @IsString()
+  image: string;
 
   @IsOptional()
   @IsString()
@@ -71,6 +74,11 @@ export class CreateProductInputDTO {
 
   @IsNumber()
   basePrice: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
 
   @IsOptional()
   @IsString()
@@ -115,6 +123,11 @@ export class UpdateProductInputDTO {
   @IsOptional()
   @IsNumber()
   basePrice?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
 
   @IsOptional()
   @IsArray()
