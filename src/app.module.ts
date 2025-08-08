@@ -7,6 +7,7 @@ import { join } from 'path';
 import { CategoryModule } from './modules/category/category.module';
 import { ProductModule } from './modules/product/product.module';
 import { R2Module } from './modules/r2/r2.module';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -34,6 +35,18 @@ import { R2Module } from './modules/r2/r2.module';
       playground: true,
       introspection: true,
       context: ({ req, res }) => ({ req, res }),
+    }),
+    MulterModule.register({
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB per file
+        files: 10, // Max 10 files at once
+      },
+      fileFilter: (req, file, callback) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return callback(new Error('Only image files are allowed!'), false);
+        }
+        callback(null, true);
+      },
     }),
     CategoryModule,
     ProductModule,
