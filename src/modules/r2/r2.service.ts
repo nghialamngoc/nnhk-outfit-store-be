@@ -2,13 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   S3Client,
   PutObjectCommand,
-  DeleteObjectCommand,
-  HeadObjectCommand,
   ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
-import { v4 as uuidv4 } from 'uuid';
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 import * as path from 'path';
 
 @Injectable()
@@ -23,8 +20,19 @@ export class R2Service {
     const accessKey = this.configService.get<string>('R2_ACCESS_KEY')!;
     const secretKey = this.configService.get<string>('R2_SECRET_KEY')!;
 
+    // Kiểm tra biến môi trường
+    if (!accountId || !accessKey || !secretKey) {
+      this.logger.error('Missing R2 configuration variables');
+      throw new Error('R2 configuration variables are missing');
+    }
+
     this.bucketName = this.configService.get<string>('R2_BUCKET_NAME')!;
     this.publicUrl = this.configService.get<string>('R2_PUBLIC_URL')!;
+
+    if (!this.bucketName || !this.publicUrl) {
+      this.logger.error('Missing R2 bucket name or public URL');
+      throw new Error('R2 bucket name or public URL is missing');
+    }
 
     this.s3Client = new S3Client({
       region: 'auto',
@@ -40,11 +48,19 @@ export class R2Service {
     buffer: Buffer,
   ): Promise<{ buffer: Buffer; mimeType: string; extension: string }> {
     try {
+      // Kiểm tra buffer hợp lệ
+      if (!buffer || buffer.length === 0) {
+        this.logger.error('Invalid or empty image buffer');
+        throw new Error('Image buffer is invalid or empty');
+      }
+
+      this.logger.log('Starting image optimization with sharp...');
       const optimizedImage = await sharp(buffer)
         .resize({ width: 1280, withoutEnlargement: true }) // Max width 1280px, keep aspect ratio
-        .webp({ quality: 100 }) // Convert to WebP, quality
+        .webp({ quality: 100 })
         .toBuffer();
 
+      this.logger.log('Image optimization completed');
       return {
         buffer: optimizedImage,
         mimeType: 'image/webp',
@@ -76,9 +92,11 @@ export class R2Service {
     try {
       // Validate file type
       if (!file.mimetype.startsWith('image/')) {
+        this.logger.error('File is not an image');
         throw new Error('File is not an image');
       }
 
+      this.logger.log(`Processing file: ${file.originalname}`);
       const { buffer, mimeType } = await this.optimizeImage(file.buffer);
 
       const fileName = await this.generateUniqueFileName(
@@ -107,21 +125,22 @@ export class R2Service {
     }
   }
 
-  /**
-   * Upload multiple files
-   */
   async uploadMultipleFiles(
     files: Express.Multer.File[],
     folder: string = 'products',
   ): Promise<string[]> {
     if (!files || files.length === 0) {
+      this.logger.warn('No files provided for upload');
       return [];
     }
 
+    this.logger.log(`Uploading ${files.length} files...`);
     const uploadPromises = files.map((file) => this.uploadFile(file, folder));
 
     try {
-      return await Promise.all(uploadPromises);
+      const results = await Promise.all(uploadPromises);
+      this.logger.log('All files uploaded successfully');
+      return results;
     } catch (error) {
       this.logger.error(`Failed to upload multiple files: ${error.message}`);
       throw new Error(`Multiple file upload failed: ${error.message}`);
@@ -138,7 +157,7 @@ export class R2Service {
     nextContinuationToken: string | null;
   }> {
     this.logger.log(
-      `r2 get list images with params ${JSON.stringify({ limit, continuationToken, search })}`,
+      `Listing images with params ${JSON.stringify({ limit, continuationToken, search })}`,
     );
 
     try {
@@ -152,10 +171,11 @@ export class R2Service {
       const { Contents, NextContinuationToken } =
         await this.s3Client.send(command);
 
-      let images = (Contents || [])
-        .filter((obj) => obj.Key && obj.Key.endsWith('.webp')) // Only include WebP images
+      const images = (Contents || [])
+        .filter((obj) => obj.Key && obj.Key.endsWith('.webp'))
         .map((obj) => `${this.publicUrl}/${obj.Key}`);
 
+      this.logger.log(`Found ${images.length} images`);
       return {
         images,
         count: images.length,

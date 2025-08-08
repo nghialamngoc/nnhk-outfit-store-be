@@ -6,7 +6,7 @@ import {
   GetProductsInputDTO,
   UpdateProductInputDTO,
 } from './dto/product.dto';
-import { ProductConnection } from 'src/graphql';
+import { ProductConnection } from '../../graphql';
 
 @Resolver('Product')
 @UsePipes(new ValidationPipe({ transform: true }))

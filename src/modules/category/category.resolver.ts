@@ -1,6 +1,6 @@
 import { Resolver, Mutation, Args, Query, ID, Int } from '@nestjs/graphql';
 import { UsePipes, ValidationPipe, Logger } from '@nestjs/common';
-import { Category } from 'src/graphql';
+import { Category } from '../../graphql';
 import { CategoryService } from './category.service';
 import {
   CreateCategoryInputDTO,

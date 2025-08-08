@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { ProductStatus } from 'src/types/product';
+import { ProductStatus } from '../../types/product';
 
 @Schema({
   _id: true, // Enable _id for subdocuments
