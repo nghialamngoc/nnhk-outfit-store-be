@@ -3,11 +3,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { join } from 'path';
 import { CategoryModule } from './modules/category/category.module';
 import { ProductModule } from './modules/product/product.module';
 import { R2Module } from './modules/r2/r2.module';
 import { MulterModule } from '@nestjs/platform-express';
+import { UserModule } from './modules/user/user.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -47,6 +48,8 @@ import { MulterModule } from '@nestjs/platform-express';
     CategoryModule,
     ProductModule,
     R2Module,
+    UserModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],

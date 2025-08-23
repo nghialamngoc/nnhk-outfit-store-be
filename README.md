@@ -96,3 +96,44 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+   ┌─────────────────────────────────────────────┐
+   │          Client Request                     │
+   │  GET /api/profile                           │
+   │  Authorization: Bearer <token>              │
+   └─────────────────┬───────────────────────────┘
+                     │
+   ┌─────────────────▼───────────────────────────┐
+   │        JwtAuthGuard.canActivate()           │
+   │                                             │
+   │  1. Check @Public() metadata                │
+   │     - If public -> return true              │
+   │     - If not public -> continue             │
+   │                                             │
+   │  2. Call super.canActivate()                │
+   └─────────────────┬───────────────────────────┘
+                     │
+   ┌─────────────────▼───────────────────────────┐
+   │         Passport JWT Process                │
+   │                                             │
+   │  1. Extract token from header               │
+   │  2. Verify token with secret                │
+   │  3. Decode payload                          │
+   └─────────────────┬───────────────────────────┘
+                     │
+   ┌─────────────────▼───────────────────────────┐
+   │       JwtStrategy.validate()                │
+   │                                             │
+   │  1. Receive decoded payload                 │
+   │  2. Query user from database                │
+   │  3. Check if user exists and active         │
+   │  4. Return user object                      │
+   └─────────────────┬───────────────────────────┘
+                     │
+   ┌─────────────────▼───────────────────────────┐
+   │         Controller Method                   │
+   │                                             │
+   │  - request.user contains user object        │
+   │  - @CurrentUser() can extract it            │
+   │  - Business logic executes                  │
+   └─────────────────────────────────────────────┘
