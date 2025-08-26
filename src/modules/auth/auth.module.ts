@@ -6,10 +6,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { User, UserSchema } from '../schemas/user.schema';
 import { UserModule } from '../user/user.module';
-import { RolesGuard } from 'src/decorators/roles.decorator';
+import { RolesGuard } from 'src/common/decorators/roles.decorator';
 
 @Module({
   imports: [
@@ -29,15 +28,7 @@ import { RolesGuard } from 'src/decorators/roles.decorator';
     UserModule,
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    JwtStrategy,
-    {
-      provide: 'APP_GUARD',
-      useClass: JwtAuthGuard,
-    },
-    RolesGuard,
-  ],
+  providers: [AuthService, JwtStrategy, RolesGuard],
   exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

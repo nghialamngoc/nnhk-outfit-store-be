@@ -5,17 +5,17 @@ import { Injectable, CanActivate } from '@nestjs/common';
 import { AuthUserResponse } from 'src/types';
 
 export const ROLES_KEY = 'role';
-export const UseRole = (role: string) => SetMetadata(ROLES_KEY, role);
+export const UseRole = (roles: string[]) => SetMetadata(ROLES_KEY, roles);
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<string>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!requiredRoles) {
       return true;
@@ -28,9 +28,9 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    if (!user || !user.role || !user.role.includes(requiredRoles)) {
+    if (!user || !user.role || !requiredRoles.includes(user.role)) {
       throw new UnauthorizedException(
-        `User does not have the required role: ${requiredRoles}`,
+        `User does not have the required role: ${requiredRoles.join(' - ')}`,
       );
     }
 

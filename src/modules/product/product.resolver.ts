@@ -1,4 +1,4 @@
-import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Logger, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { Args, Query, Mutation, Resolver } from '@nestjs/graphql';
 import { ProductService } from './product.service';
 import {
@@ -7,8 +7,10 @@ import {
   UpdateProductInputDTO,
 } from './dto/product.dto';
 import { ProductConnection } from '../../graphql';
+import { GqlAuthGuard } from 'src/common/guards/gql-auth.guard';
 
 @Resolver('Product')
+@UseGuards(GqlAuthGuard)
 @UsePipes(new ValidationPipe({ transform: true }))
 export class ProductResolver {
   private readonly logger = new Logger(ProductResolver.name);
