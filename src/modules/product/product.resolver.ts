@@ -7,16 +7,16 @@ import {
   UpdateProductInputDTO,
 } from './dto/product.dto';
 import { ProductConnection } from '../../graphql';
-import { GqlAuthGuard } from 'src/common/guards/gql-auth.guard';
+import { GqlAuthGuard } from 'src/common/guards/gql.guard';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Resolver('Product')
 @UseGuards(GqlAuthGuard)
 @UsePipes(new ValidationPipe({ transform: true }))
 export class ProductResolver {
-  private readonly logger = new Logger(ProductResolver.name);
-
   constructor(private readonly productService: ProductService) {}
 
+  @Public()
   @Query(() => ProductConnection)
   async getProducts(@Args('input') input: GetProductsInputDTO) {
     return this.productService.getProducts(input);
