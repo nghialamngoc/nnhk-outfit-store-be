@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto, RefreshTokenDto } from './dto/auth.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { CurrentUser } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
+import { Response } from 'express';
 
 @Controller('auth')
 @UseGuards(JwtAuthGuard)
@@ -12,14 +13,20 @@ export class AuthController {
 
   @Public()
   @Post('/login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.authService.login(loginDto, response);
   }
 
   @Public()
   @Post('/refresh-token')
-  async reFreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.refreshToken(refreshTokenDto);
+  async reFreshToken(
+    @Body() { refreshToken }: RefreshTokenDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.authService.refreshToken(refreshToken, response);
   }
 
   @Get('profile')

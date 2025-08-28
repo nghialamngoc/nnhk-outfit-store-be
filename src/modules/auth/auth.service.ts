@@ -8,21 +8,26 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
 import * as bcrypt from 'bcryptjs';
 import { User, UserDocument } from '../schemas/user.schema';
 import { LoginDto, RefreshTokenDto } from './dto/auth.dto';
 import { UserService } from '../user/user.service';
 import {
-  AuthTokens,
   JwtPayload,
   AuthUserResponse,
   LoginProvider,
   LoginResponse,
 } from 'src/types';
+import { parseExpiresInToMs } from 'src/utils/time';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly jwtAccessSecret: string;
+  private readonly jwtRefreshSecret: string;
+  private readonly jwtAccessExpired: string;
+  private readonly jwtRefreshExpired: string;
 
   // Store refresh tokens in memory (in production, use Redis)
   private refreshTokens: Map<string, { userId: string; expiresAt: Date }> =
@@ -33,16 +38,28 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly userService: UserService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {}
+  ) {
+    this.jwtAccessSecret = this.configService.get<string>('JWT_ACCESS_SECRET')!;
+    this.jwtRefreshSecret =
+      this.configService.get<string>('JWT_REFRESH_SECRET')!;
+    this.jwtAccessExpired =
+      this.configService.get<string>('JWT_ACCESS_EXPIRED')!;
+    this.jwtRefreshExpired = this.configService.get<string>(
+      'JWT_REFRESH_EXPIRED',
+    )!;
+  }
 
-  private async localLogin(loginDto: LoginDto): Promise<LoginResponse> {
+  private async localLogin(
+    loginDto: LoginDto,
+    response: Response,
+  ): Promise<LoginResponse> {
     const { email, password } = loginDto;
     if (!email) {
       throw new BadRequestException('Email is required');
     }
 
     if (!password) {
-      throw new BadRequestException('Passord is required');
+      throw new BadRequestException('Password is required');
     }
 
     // Find user by email
@@ -66,6 +83,9 @@ export class AuthService {
     const accessToken = await this.generateAccessToken(user);
     const refreshToken = await this.generateRefreshToken(user);
 
+    // Set tokens as httpOnly cookies
+    this.setTokenCookies(response, accessToken, refreshToken);
+
     this.logger.log(`User logged in successfully: ${email}`);
 
     return {
@@ -75,19 +95,16 @@ export class AuthService {
         name: user.name,
         role: user.role,
       },
-      tokens: {
-        accessToken,
-        refreshToken,
-      },
+      message: 'Login successful',
     };
   }
 
-  async login(loginDto: LoginDto): Promise<LoginResponse> {
+  async login(loginDto: LoginDto, response: Response): Promise<LoginResponse> {
     try {
       const { loginProvider } = loginDto;
 
       if (loginProvider === LoginProvider.local) {
-        return await this.localLogin(loginDto);
+        return await this.localLogin(loginDto, response);
       }
 
       throw new UnauthorizedException('Something wrong. Please try later!');
@@ -98,54 +115,57 @@ export class AuthService {
   }
 
   async refreshToken(
-    refreshTokenDto: RefreshTokenDto,
-  ): Promise<{ accessToken: string }> {
+    refreshTokenFromCookie: string,
+    response: Response,
+  ): Promise<{ message: string }> {
     try {
-      const { refreshToken } = refreshTokenDto;
-
       // Check if refresh token exists and is valid
-      const tokenData = this.refreshTokens.get(refreshToken);
+      const tokenData = this.refreshTokens.get(refreshTokenFromCookie);
       if (!tokenData) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
       // Check if refresh token is expired
       if (new Date() > tokenData.expiresAt) {
-        this.refreshTokens.delete(refreshToken);
+        this.refreshTokens.delete(refreshTokenFromCookie);
         throw new UnauthorizedException('Refresh token expired');
       }
 
       // Find user
       const user = await this.userModel.findById(tokenData.userId);
       if (!user || !user.isActive) {
-        this.refreshTokens.delete(refreshToken);
+        this.refreshTokens.delete(refreshTokenFromCookie);
         throw new UnauthorizedException('User not found or inactive');
       }
 
-      // Generate new tokens
-      const accessToken = await this.generateAccessToken(user);
+      // Generate new access token
+      const newAccessToken = await this.generateAccessToken(user);
 
-      this.logger.log(`Tokens refreshed for user: ${user.email}`);
+      // Update access token cookie
+      this.setAccessTokenCookie(response, newAccessToken);
 
-      return { accessToken };
+      this.logger.log(`Token refreshed for user: ${user.email}`);
+
+      return { message: 'Token refreshed successfully' };
     } catch (error) {
       this.logger.error(`Token refresh failed: ${error.message}`);
       throw error;
     }
   }
 
-  async logout(refreshToken: string): Promise<{ message: string }> {
+  async logout(
+    refreshToken: string,
+    response: Response,
+  ): Promise<{ message: string }> {
     try {
       // Remove refresh token from storage
-      const deleted = this.refreshTokens.delete(refreshToken);
+      this.refreshTokens.delete(refreshToken);
 
-      if (deleted) {
-        this.logger.log('User logged out successfully');
-        return { message: 'Logged out successfully' };
-      } else {
-        this.logger.warn('Logout attempted with invalid refresh token');
-        return { message: 'Already logged out' };
-      }
+      // Clear cookies
+      this.clearTokenCookies(response);
+
+      this.logger.log('User logged out successfully');
+      return { message: 'Logged out successfully' };
     } catch (error) {
       this.logger.error(`Logout failed: ${error.message}`);
       throw new BadRequestException('Logout failed');
@@ -180,8 +200,8 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRED'),
+      secret: this.jwtAccessSecret,
+      expiresIn: this.jwtAccessExpired,
     });
 
     return accessToken;
@@ -190,13 +210,13 @@ export class AuthService {
   private async generateRefreshToken(user: UserDocument): Promise<string> {
     const refreshTokenPayload = { sub: user.id };
     const refreshToken = this.jwtService.sign(refreshTokenPayload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRED'),
+      secret: this.jwtRefreshSecret,
+      expiresIn: this.jwtRefreshExpired,
     });
 
     // Store refresh token with expiration
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 1); // 1 day from now
+    const expiresInMs = parseExpiresInToMs(this.jwtRefreshExpired);
+    const expiresAt = new Date(Date.now() + expiresInMs);
 
     this.refreshTokens.set(refreshToken, {
       userId: user.id,
@@ -204,6 +224,55 @@ export class AuthService {
     });
 
     return refreshToken;
+  }
+
+  // Set both tokens as httpOnly cookies
+  private setTokenCookies(
+    response: Response,
+    accessToken: string,
+    refreshToken: string,
+  ): void {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    const accessTokenMaxAge = parseExpiresInToMs(this.jwtAccessExpired);
+    const refreshTokenMaxAge = parseExpiresInToMs(this.jwtRefreshExpired);
+
+    // Access token cookie
+    response.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: accessTokenMaxAge,
+      path: '/',
+    });
+
+    // Refresh token cookie
+    response.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: refreshTokenMaxAge,
+      path: '/',
+    });
+  }
+
+  // Set only access token cookie (for refresh token flow)
+  private setAccessTokenCookie(response: Response, accessToken: string): void {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    const accessTokenMaxAge = parseExpiresInToMs(this.jwtAccessExpired);
+
+    response.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: accessTokenMaxAge,
+      path: '/',
+    });
+  }
+
+  // Clear all auth cookies
+  private clearTokenCookies(response: Response): void {
+    response.clearCookie('accessToken', { path: '/' });
+    response.clearCookie('refreshToken', { path: '/' });
   }
 
   // Clean up expired refresh tokens (run this periodically)
