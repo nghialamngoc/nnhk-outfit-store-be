@@ -1,10 +1,19 @@
-import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto, RefreshTokenDto } from './dto/auth.dto';
+import { LoginDto } from './dto/auth.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { CurrentUser } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 
 @Controller('auth')
 @UseGuards(JwtAuthGuard)
@@ -23,9 +32,13 @@ export class AuthController {
   @Public()
   @Post('/refresh-token')
   async reFreshToken(
-    @Body() { refreshToken }: RefreshTokenDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
+    const refreshToken = request.cookies['refreshToken'];
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token provided');
+    }
     return this.authService.refreshToken(refreshToken, response);
   }
 
