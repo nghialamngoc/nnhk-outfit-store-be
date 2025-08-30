@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 import { LoginProvider } from 'src/types';
 
 export class LoginDto {
@@ -21,8 +27,10 @@ export class RefreshTokenDto {
 
 export class GetProfileServerDto {
   @IsString()
+  @IsOptional()
   accessToken?: string;
 
   @IsString()
+  @IsOptional()
   refreshToken?: string;
 }
