@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import * as bcrypt from 'bcryptjs';
 import { User, UserDocument } from '../schemas/user.schema';
-import { LoginDto, RefreshTokenDto } from './dto/auth.dto';
+import { GetProfileServerDto, LoginDto, RefreshTokenDto } from './dto/auth.dto';
 import { UserService } from '../user/user.service';
 import {
   JwtPayload,
@@ -48,6 +48,87 @@ export class AuthService {
     this.jwtRefreshExpired = this.configService.get<string>(
       'JWT_REFRESH_EXPIRED',
     )!;
+  }
+
+  async getProfileServer({
+    accessToken,
+    refreshToken,
+  }: GetProfileServerDto): Promise<{
+    user?: AuthUserResponse;
+    accessToken?: string;
+    refreshToken?: string;
+  }> {
+    try {
+      let user: AuthUserResponse | null = null;
+      let newAccessToken = accessToken;
+
+      // Step 1: Try to verify accessToken if provided
+      if (accessToken) {
+        try {
+          const payload = await this.jwtService.verifyAsync<JwtPayload>(
+            accessToken,
+            {
+              secret: this.jwtAccessSecret,
+            },
+          );
+          user = await this.validateUser(payload);
+          if (!user) {
+            throw new UnauthorizedException('User not found or inactive');
+          }
+          this.logger.log(
+            `Profile retrieved with valid accessToken: ${user.email}`,
+          );
+          return { user, accessToken, refreshToken };
+        } catch (error) {
+          this.logger.warn(`Access token invalid or expired: ${error.message}`);
+          // Access token invalid, proceed to refresh token
+        }
+      }
+
+      // Step 2: If accessToken is invalid or not provided, check refreshToken
+      if (!refreshToken) {
+        throw new UnauthorizedException('No refresh token provided');
+      }
+
+      const tokenData = this.refreshTokens.get(refreshToken);
+      if (!tokenData) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      // Check if refresh token is expired
+      if (new Date() > tokenData.expiresAt) {
+        this.refreshTokens.delete(refreshToken);
+        throw new UnauthorizedException('Refresh token expired');
+      }
+
+      // Find user
+      const userDoc = await this.userModel.findById(tokenData.userId);
+      if (!userDoc || !userDoc.isActive) {
+        this.refreshTokens.delete(refreshToken);
+        throw new UnauthorizedException('User not found or inactive');
+      }
+
+      // Generate new access token
+      newAccessToken = await this.generateAccessToken(userDoc);
+
+      user = {
+        id: userDoc.id,
+        email: userDoc.email,
+        name: userDoc.name,
+        role: userDoc.role,
+      };
+
+      this.logger.log(`Profile retrieved with new accessToken: ${user.email}`);
+
+      return {
+        user,
+        accessToken: newAccessToken,
+        refreshToken,
+      };
+    } catch (error) {
+      this.logger.error(`Get profile failed: ${error.message}`);
+      throw error;
+    }
   }
 
   private async localLogin(loginDto: LoginDto): Promise<LoginResponse> {

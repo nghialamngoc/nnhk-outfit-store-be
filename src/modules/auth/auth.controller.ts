@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/auth.dto';
+import { GetProfileServerDto, LoginDto } from './dto/auth.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { CurrentUser } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
@@ -38,5 +38,11 @@ export class AuthController {
   @Get('profile')
   async getProfile(@CurrentUser() user: any) {
     return { user };
+  }
+
+  @Public()
+  @Post('/profile-server')
+  async getProfileServer(@Body() input: GetProfileServerDto) {
+    return this.authService.getProfileServer(input);
   }
 }

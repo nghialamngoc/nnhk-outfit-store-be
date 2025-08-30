@@ -18,3 +18,11 @@ export class RefreshTokenDto {
   @IsNotEmpty()
   refreshToken: string;
 }
+
+export class GetProfileServerDto {
+  @IsString()
+  accessToken?: string;
+
+  @IsString()
+  refreshToken?: string;
+}
