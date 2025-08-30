@@ -1,3 +1,4 @@
+import { ApiResponse } from './common';
 import { User } from './user';
 
 export interface JwtPayload {
@@ -15,10 +16,15 @@ export interface AuthUserResponse {
   role?: string;
 }
 
-export interface LoginResponse {
+export type LoginResponse = ApiResponse<{
   user: User;
-  message: string;
-}
+  accessToken: string;
+  refreshToken: string;
+}>;
+
+export type RefreshTokenResponse = ApiResponse<{
+  accessToken: string;
+}>;
 
 export enum LoginProvider {
   local = 'local',

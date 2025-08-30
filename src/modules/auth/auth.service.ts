@@ -18,6 +18,7 @@ import {
   AuthUserResponse,
   LoginProvider,
   LoginResponse,
+  RefreshTokenResponse,
 } from 'src/types';
 import { parseExpiresInToMs } from 'src/utils/time';
 
@@ -49,10 +50,7 @@ export class AuthService {
     )!;
   }
 
-  private async localLogin(
-    loginDto: LoginDto,
-    response: Response,
-  ): Promise<LoginResponse> {
+  private async localLogin(loginDto: LoginDto): Promise<LoginResponse> {
     const { email, password } = loginDto;
     if (!email) {
       throw new BadRequestException('Email is required');
@@ -83,28 +81,30 @@ export class AuthService {
     const accessToken = await this.generateAccessToken(user);
     const refreshToken = await this.generateRefreshToken(user);
 
-    // Set tokens as httpOnly cookies
-    this.setTokenCookies(response, accessToken, refreshToken);
-
     this.logger.log(`User logged in successfully: ${email}`);
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
+      data: {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
       },
       message: 'Login successful',
+      success: true,
     };
   }
 
-  async login(loginDto: LoginDto, response: Response): Promise<LoginResponse> {
+  async login(loginDto: LoginDto): Promise<LoginResponse> {
     try {
       const { loginProvider } = loginDto;
 
       if (loginProvider === LoginProvider.local) {
-        return await this.localLogin(loginDto, response);
+        return await this.localLogin(loginDto);
       }
 
       throw new UnauthorizedException('Something wrong. Please try later!');
@@ -116,8 +116,7 @@ export class AuthService {
 
   async refreshToken(
     refreshTokenFromCookie: string,
-    response: Response,
-  ): Promise<{ message: string }> {
+  ): Promise<RefreshTokenResponse> {
     try {
       // Check if refresh token exists and is valid
       const tokenData = this.refreshTokens.get(refreshTokenFromCookie);
@@ -141,28 +140,25 @@ export class AuthService {
       // Generate new access token
       const newAccessToken = await this.generateAccessToken(user);
 
-      // Update access token cookie
-      this.setAccessTokenCookie(response, newAccessToken);
-
       this.logger.log(`Token refreshed for user: ${user.email}`);
 
-      return { message: 'Token refreshed successfully' };
+      return {
+        message: 'Token refreshed successfully',
+        success: true,
+        data: {
+          accessToken: newAccessToken,
+        },
+      };
     } catch (error) {
       this.logger.error(`Token refresh failed: ${error.message}`);
       throw error;
     }
   }
 
-  async logout(
-    refreshToken: string,
-    response: Response,
-  ): Promise<{ message: string }> {
+  async logout(refreshToken: string): Promise<{ message: string }> {
     try {
       // Remove refresh token from storage
       this.refreshTokens.delete(refreshToken);
-
-      // Clear cookies
-      this.clearTokenCookies(response);
 
       this.logger.log('User logged out successfully');
       return { message: 'Logged out successfully' };
@@ -224,55 +220,6 @@ export class AuthService {
     });
 
     return refreshToken;
-  }
-
-  // Set both tokens as httpOnly cookies
-  private setTokenCookies(
-    response: Response,
-    accessToken: string,
-    refreshToken: string,
-  ): void {
-    const isProduction = this.configService.get('NODE_ENV') === 'production';
-    const accessTokenMaxAge = parseExpiresInToMs(this.jwtAccessExpired);
-    const refreshTokenMaxAge = parseExpiresInToMs(this.jwtRefreshExpired);
-
-    // Access token cookie
-    response.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: accessTokenMaxAge,
-      path: '/',
-    });
-
-    // Refresh token cookie
-    response.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: refreshTokenMaxAge,
-      path: '/',
-    });
-  }
-
-  // Set only access token cookie (for refresh token flow)
-  private setAccessTokenCookie(response: Response, accessToken: string): void {
-    const isProduction = this.configService.get('NODE_ENV') === 'production';
-    const accessTokenMaxAge = parseExpiresInToMs(this.jwtAccessExpired);
-
-    response.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: accessTokenMaxAge,
-      path: '/',
-    });
-  }
-
-  // Clear all auth cookies
-  private clearTokenCookies(response: Response): void {
-    response.clearCookie('accessToken', { path: '/' });
-    response.clearCookie('refreshToken', { path: '/' });
   }
 
   // Clean up expired refresh tokens (run this periodically)
